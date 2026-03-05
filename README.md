@@ -1,4 +1,4 @@
-Day 01 – Project Setup
+Day 1st – Project Setup
 
 Today I started building FinSage AI, a FinTech risk analysis system using LLMOps.
 
@@ -13,3 +13,4 @@ User → Streamlit → Ollama LLM → Response
 
 Next step:
 Implement Retrieval Augmented Generation (RAG).
+
