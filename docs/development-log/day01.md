@@ -10,6 +10,7 @@ Tasks completed:
 
 Current workflow:
 User → Streamlit → Ollama LLM → Response
+source venv/bin/activate
 
 Next step:
 Implement Retrieval Augmented Generation (RAG).
