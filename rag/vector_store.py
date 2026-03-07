@@ -1,38 +1,51 @@
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-import pickle
-import os
+from langchain_community.document_loaders import DirectoryLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
-# Sample financial risk documents
-documents = [
-    "Fintech lending platforms face borrower default risk.",
-    "Regulatory changes can impact fintech companies.",
-    "Cybersecurity threats are a major risk in digital finance.",
-    "Liquidity risk is common in peer-to-peer lending platforms.",
-    "Data privacy regulations affect fintech data handling."
-]
+DATA_PATH = "data"
+DB_FAISS_PATH = "vector_db"
 
-# Load embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Convert documents to embeddings
-embeddings = model.encode(documents)
-embeddings = np.array(embeddings)
+def create_vector_db():
+    loader = DirectoryLoader(DATA_PATH, glob="**/*.txt")
+    documents = loader.load()
 
-# Create FAISS index
-dimension = embeddings.shape[1]
-index = faiss.IndexFlatL2(dimension)
-index.add(embeddings)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50
+    )
 
-# Create vector_store folder in project root
-os.makedirs("vector_store", exist_ok=True)
+    texts = text_splitter.split_documents(documents)
 
-# Save FAISS index
-faiss.write_index(index, "vector_store/faiss_index.bin")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
 
-# Save documents
-with open("vector_store/documents.pkl", "wb") as f:
-    pickle.dump(documents, f)
+    db = FAISS.from_documents(texts, embeddings)
 
-print("Vector database created successfully!")
+    db.save_local(DB_FAISS_PATH)
+
+    print("Vector database created successfully!")
+
+
+def load_vector_store():
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+    db = FAISS.load_local(
+        DB_FAISS_PATH,
+        embeddings,
+        allow_dangerous_deserialization=True
+    )
+
+    return db
+if __name__ == "__main__":
+    create_vector_db()
+  
+
+
+
+
+
