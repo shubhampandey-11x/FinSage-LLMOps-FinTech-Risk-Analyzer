@@ -1,11 +1,23 @@
 from guardrails.guardrails import validate_prompt, clean_prompt
 from guardrails.evaluator import evaluate_response
-from backend.explainability import generate_explanation  # ✅ NEW
+from backend.explainability import generate_explanation
 
 import streamlit as st
 import ollama
 import datetime
-import re  # ✅ for extracting numbers
+import re
+import pandas as pd
+import os
+
+# -----------------------------
+# Page Config (NEW)
+# -----------------------------
+st.set_page_config(page_title="FinSage Dashboard", layout="wide")
+
+# -----------------------------
+# Ensure logs folder exists
+# -----------------------------
+os.makedirs("logs", exist_ok=True)
 
 # -----------------------------
 # Security Guardrail
@@ -51,23 +63,20 @@ def classify_risk(text):
 
 
 # -----------------------------
-# Extract Structured Data (NEW)
+# Extract Structured Data
 # -----------------------------
 
 def extract_transaction_features(text):
     text = text.lower()
 
-    # Extract amount
     amount_match = re.search(r'\d+', text)
     amount = int(amount_match.group()) if amount_match else 0
 
-    # Detect time (simple logic)
     if "midnight" in text or "night" in text:
         time = 1
     else:
         time = 12
 
-    # Detect flags
     is_new_beneficiary = "new" in text or "new account" in text
     is_international = "overseas" in text or "international" in text
 
@@ -84,13 +93,8 @@ def extract_transaction_features(text):
 # -----------------------------
 
 def log_analysis(query, response, risk):
-
     with open("logs/analysis_log.txt", "a") as f:
-        f.write("\n----------------------------\n")
-        f.write(f"Time: {datetime.datetime.now()}\n")
-        f.write(f"Query: {query}\n")
-        f.write(f"Risk Level: {risk}\n")
-        f.write(f"Response: {response}\n")
+        f.write(f"{datetime.datetime.now()}|{risk}|{query}\n")
 
 
 # -----------------------------
@@ -98,7 +102,7 @@ def log_analysis(query, response, risk):
 # -----------------------------
 
 st.title("FinSage AI - Financial Risk Assistant")
-st.write("Enter a financial transaction to analyze.")
+st.caption("🔄 Dashboard updates after each analysis")
 
 user_input = st.text_area("Transaction or Query:")
 
@@ -108,7 +112,6 @@ if st.button("Analyze"):
         st.warning("Please enter a transaction or query.")
         st.stop()
 
-    # Guardrail check
     if is_malicious(user_input):
         st.error("⚠️ Security Policy: This system cannot answer hacking or exploitation questions.")
         st.stop()
@@ -123,10 +126,7 @@ if st.button("Analyze"):
 
     with st.spinner("Analyzing..."):
 
-        # 🔥 Extract structured features
         transaction_data = extract_transaction_features(cleaned_prompt)
-
-        # 🔥 Generate explainability BEFORE LLM
         explanation = generate_explanation(transaction_data)
 
         response = ollama.chat(
@@ -134,7 +134,7 @@ if st.button("Analyze"):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a financial fraud analyst. Analyze financial transactions and detect suspicious activity."
+                    "content": "You are a financial fraud analyst."
                 },
                 {
                     "role": "user",
@@ -146,39 +146,86 @@ System Risk Signals:
 Score: {explanation['risk_score']}
 Reasons: {explanation['reasons']}
 
-Now give final fraud analysis and conclusion.
+Give final fraud analysis.
 """
                 }
             ]
         )
 
         output = response["message"]["content"]
-
         evaluation = evaluate_response(output)
-
-        # Risk classification
         risk = classify_risk(output)
 
-        # Logging
         log_analysis(user_input, output, risk)
 
-        # -----------------------------
-        # UI OUTPUT
-        # -----------------------------
-
         st.success("Analysis Result")
-
         st.write(output)
 
         st.subheader("Risk Level")
         st.write(risk)
 
-        # 🔥 NEW SECTION (DAY 7 CORE)
         st.subheader("🔍 Explainability")
-
         st.write("Risk Score:", explanation["risk_score"])
 
         for reason in explanation["reasons"]:
             st.write(f"- {reason}")
 
         st.info(f"Response Quality: {evaluation['quality']}")
+
+
+# -----------------------------
+# 📊 DAY 8 ADVANCED DASHBOARD
+# -----------------------------
+
+with st.container():
+
+    st.subheader("📊 Fraud Monitoring Dashboard")
+
+    try:
+        data = []
+
+        with open("logs/analysis_log.txt", "r") as f:
+            for line in f:
+                parts = line.strip().split("|")
+                if len(parts) == 3:
+                    data.append(parts)
+
+        df = pd.DataFrame(data, columns=["time", "risk", "query"])
+
+        # ✅ STEP 1: Convert time
+        df["time"] = pd.to_datetime(df["time"])
+
+        if not df.empty:
+
+            # 📊 Risk Distribution
+            st.write("### 📊 Risk Distribution")
+            st.bar_chart(df["risk"].value_counts())
+
+            # 📈 Time Series
+            st.write("### 📈 Transactions Over Time")
+            time_series = df.groupby(df["time"].dt.hour).size()
+            st.line_chart(time_series)
+
+            # 🎯 Risk Metrics
+            st.write("### 🎯 Risk Breakdown")
+
+            risk_counts = df["risk"].value_counts()
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric("🔴 High Risk", risk_counts.get("🔴 HIGH RISK", 0))
+
+            with col2:
+                st.metric("🟠 Medium Risk", risk_counts.get("🟠 MEDIUM RISK", 0))
+
+            with col3:
+                st.metric("🟢 Low Risk", risk_counts.get("🟢 LOW RISK", 0))
+
+            # 🚨 High Risk Table
+            st.write("### 🚨 High Risk Alerts")
+            high_risk_df = df[df["risk"].str.contains("HIGH")]
+            st.dataframe(high_risk_df)
+
+    except:
+        st.warning("No data available yet.")
