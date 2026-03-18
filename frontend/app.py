@@ -1,13 +1,14 @@
-from guardrails.guardrails import validate_prompt, clean_prompt
-from guardrails.evaluator import evaluate_response
-from backend.explainability import generate_explanation
+import sys
+import os
+
+# ✅ Fix import path for main.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import streamlit as st
-import ollama
-import datetime
-import re
 import pandas as pd
-import os
+import re
+
+from main import run_pipeline   # ✅ NEW (core pipeline)
 
 # -----------------------------
 # Page Config
@@ -20,7 +21,7 @@ st.set_page_config(page_title="FinSage Dashboard", layout="wide")
 os.makedirs("logs", exist_ok=True)
 
 # -----------------------------
-# Security Guardrail
+# Security Guardrail (UI Level)
 # -----------------------------
 BLOCKED_WORDS = [
     "hack", "hacking", "exploit", "bypass",
@@ -36,7 +37,7 @@ def is_malicious(query: str) -> bool:
 # Normalize Risk Labels
 # -----------------------------
 def normalize_risk_label(risk_text):
-    risk_text = risk_text.upper()
+    risk_text = str(risk_text).upper()
 
     if "HIGH" in risk_text:
         return "🔴 HIGH RISK"
@@ -46,44 +47,10 @@ def normalize_risk_label(risk_text):
         return "🟢 LOW RISK"
 
 # -----------------------------
-# Extract Structured Data
-# -----------------------------
-def extract_transaction_features(text):
-    text = text.lower()
-
-    amount_match = re.search(r'\d+', text)
-    amount = int(amount_match.group()) if amount_match else 0
-
-    time = 1 if ("midnight" in text or "night" in text) else 12
-    is_new_beneficiary = "new" in text or "new account" in text
-    is_international = "overseas" in text or "international" in text
-
-    return {
-        "amount": amount,
-        "time": time,
-        "is_new_beneficiary": is_new_beneficiary,
-        "is_international": is_international
-    }
-
-# -----------------------------
-# Parse LLM Response
-# -----------------------------
-def parse_response(response):
-    risk = re.search(r"Risk Level:\s*(.*)", response, re.IGNORECASE)
-    confidence = re.search(r"Confidence:\s*(.*)", response, re.IGNORECASE)
-    action = re.search(r"Action:\s*(.*)", response, re.IGNORECASE)
-
-    return {
-        "risk": risk.group(1).strip() if risk else "N/A",
-        "confidence": confidence.group(1).strip() if confidence else "N/A",
-        "action": action.group(1).strip() if action else "N/A",
-        "raw": response
-    }
-
-# -----------------------------
-# Logging Function
+# Logging for Dashboard (KEEP)
 # -----------------------------
 def log_analysis(query, risk):
+    import datetime
     with open("logs/analysis_log.txt", "a") as f:
         f.write(f"{datetime.datetime.now()}|{risk}|{query}\n")
 
@@ -95,6 +62,9 @@ st.caption("🔄 Dashboard updates after each analysis")
 
 user_input = st.text_area("Transaction or Query:")
 
+# =============================
+# ✅ NEW CLEAN PIPELINE USAGE
+# =============================
 if st.button("Analyze"):
 
     if not user_input.strip():
@@ -105,56 +75,14 @@ if st.button("Analyze"):
         st.error("⚠️ Security Policy: Blocked malicious query.")
         st.stop()
 
-    valid, message = validate_prompt(user_input)
-    if not valid:
-        st.error(message)
-        st.stop()
-
-    cleaned_prompt = clean_prompt(user_input)
-
     with st.spinner("Analyzing..."):
 
-        transaction_data = extract_transaction_features(cleaned_prompt)
-        explanation = generate_explanation(transaction_data)
+        # ✅ CALL MODULAR PIPELINE
+        response, risk, explanation = run_pipeline(user_input)
 
-        # -----------------------------
-        # STRONG PROMPT (FIXED)
-        # -----------------------------
-        response = ollama.chat(
-            model="mistral",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert financial fraud detection AI."
-                },
-                {
-                    "role": "user",
-                    "content": f"""
-Analyze the transaction and respond STRICTLY in format.
+        normalized_risk = normalize_risk_label(risk)
 
-Risk Level: (LOW / MEDIUM / HIGH)
-Confidence: (0-100%)
-Reasons:
-- ...
-- ...
-Action: (ONLY one word: ALLOW or REVIEW or BLOCK)
-
-Transaction:
-{cleaned_prompt}
-
-System Signals:
-Score: {explanation['risk_score']}
-Reasons: {explanation['reasons']}
-"""
-                }
-            ]
-        )
-
-        output = response["message"]["content"]
-        parsed = parse_response(output)
-
-        normalized_risk = normalize_risk_label(parsed["risk"])
-
+        # ✅ Log for dashboard (keep old system)
         log_analysis(user_input, normalized_risk)
 
         # -----------------------------
@@ -165,8 +93,7 @@ Reasons: {explanation['reasons']}
         st.subheader("🔍 Fraud Analysis")
 
         st.write(f"**Risk Level:** {normalized_risk}")
-        st.write(f"**Confidence:** {parsed['confidence']}")
-        st.write(f"**Action:** {parsed['action']}")
+        st.write(f"**Response:** {response}")
 
         # Risk Indicator
         if "HIGH" in normalized_risk:
@@ -176,26 +103,12 @@ Reasons: {explanation['reasons']}
         else:
             st.success("🟢 LOW RISK TRANSACTION")
 
-        # Confidence bar
-        try:
-            conf_value = int(parsed["confidence"].replace('%',''))
-            st.progress(conf_value)
-        except:
-            pass
-
         # Explainability
         st.subheader("🔍 Explainability")
-        st.write("Risk Score:", explanation["risk_score"])
-
-        for reason in explanation["reasons"]:
-            st.write(f"- {reason}")
-
-        # Optional raw (collapsed)
-        with st.expander("📄 Full LLM Response"):
-            st.write(parsed["raw"])
+        st.write(explanation)
 
 # -----------------------------
-# DASHBOARD
+# DASHBOARD (UNCHANGED)
 # -----------------------------
 st.subheader("📊 Fraud Monitoring Dashboard")
 

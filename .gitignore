@@ -1,7 +1,16 @@
 # Python cache
 __pycache__/
 *.pyc
-
+venv/
+venv_clean/
+__pycache__/
+*.pyc
+*.log
+.env
+.DS_Store
+faiss_index/
+vector_db/
+models/
 # Vector databases
 vector_db/
 faiss_index/

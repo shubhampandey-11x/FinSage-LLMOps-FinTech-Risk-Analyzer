@@ -17,3 +17,11 @@ handler.setFormatter(JsonFormatter())
 
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+
+def log_event(query, risk, response):
+    logger.info({
+        "event": "fraud_analysis",
+        "query": query,
+        "risk": risk,
+        "response": response
+    })
