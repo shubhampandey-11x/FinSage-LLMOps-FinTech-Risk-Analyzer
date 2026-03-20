@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-from main import run_pipeline   # ✅ NEW (core pipeline)
+from main import run_pipeline   #core pipeline
 
 # -----------------------------
 # Page Config
@@ -47,7 +47,7 @@ def normalize_risk_label(risk_text):
         return "🟢 LOW RISK"
 
 # -----------------------------
-# Logging for Dashboard (KEEP)
+# Logging for Dashboard 
 # -----------------------------
 def log_analysis(query, risk):
     import datetime
