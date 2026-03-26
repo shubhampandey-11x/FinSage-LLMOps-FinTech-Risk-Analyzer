@@ -42,7 +42,7 @@ Introduced modular backend (backend/ folder)
 Added __init__.py for proper package structure
 Maintained separation of concerns
 Output Example
-Risk Level: 🔴 HIGH RISK
+Risk Level:  HIGH RISK
 Risk Score: 9
 Reasons:
 Large transaction amount
