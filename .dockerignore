@@ -1,0 +1,26 @@
+# Python
+venv_clean/
+venv/
+__pycache__/
+*.pyc
+
+# Git
+.git/
+.gitignore
+
+# Env
+.env
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Mac junk (VERY IMPORTANT)
+.DS_Store
+
+# Optional large folders
+data/
+models/
+notebooks/
