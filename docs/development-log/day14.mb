@@ -1,0 +1,14 @@
+##  Day 14 – Explainable AI Upgrade
+
+- Added LLM-based explanation engine using Ollama (LLaMA3)
+- Integrated with microservices architecture
+- API now returns:
+  - Risk Score (deterministic)
+  - AI Explanation (LLM-generated)
+
+## Example Output
+
+Risk Score: 85%
+
+Explanation:
+High risk due to negative cash flow, high debt, and high expenses leading to liquidity concerns.
