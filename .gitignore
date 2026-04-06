@@ -21,3 +21,4 @@ faiss_index/
 vector_db/
 vector_store/
 models/yy
+.DS_Store

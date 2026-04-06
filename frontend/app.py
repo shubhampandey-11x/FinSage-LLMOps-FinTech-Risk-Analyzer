@@ -1,14 +1,15 @@
 import sys
 import os
 
-# ✅ Fix import path for main.py
+#  Fix import path for main.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import streamlit as st
 import pandas as pd
 import re
 
-from main import run_pipeline   #core pipeline
+from main import run_pipeline   # core pipeline
+from memory import ConversationMemory  # ✅ NEW
 
 # -----------------------------
 # Page Config
@@ -19,6 +20,12 @@ st.set_page_config(page_title="FinSage Dashboard", layout="wide")
 # Ensure logs folder exists
 # -----------------------------
 os.makedirs("logs", exist_ok=True)
+
+# -----------------------------
+# Initialize Memory (NEW)
+# -----------------------------
+if "memory" not in st.session_state:
+    st.session_state.memory = ConversationMemory()
 
 # -----------------------------
 # Security Guardrail (UI Level)
@@ -58,12 +65,12 @@ def log_analysis(query, risk):
 # UI
 # -----------------------------
 st.title("FinSage AI - Financial Risk Assistant")
-st.caption("🔄 Dashboard updates after each analysis")
+st.caption(" Dashboard updates after each analysis")
 
 user_input = st.text_area("Transaction or Query:")
 
 # =============================
-# ✅ NEW CLEAN PIPELINE USAGE
+#  UPDATED PIPELINE WITH MEMORY
 # =============================
 if st.button("Analyze"):
 
@@ -77,13 +84,34 @@ if st.button("Analyze"):
 
     with st.spinner("Analyzing..."):
 
-        # ✅ CALL MODULAR PIPELINE
-        response, risk, explanation = run_pipeline(user_input)
+        #  Get conversation context
+        context = st.session_state.memory.get_context()
+
+        #  Enhanced input with memory
+        enhanced_input = f"""
+        Previous Context:
+        {context}
+
+        Current Query:
+        {user_input}
+        """
+
+        #  Call pipeline
+        response, risk, explanation = run_pipeline(enhanced_input)
 
         normalized_risk = normalize_risk_label(risk)
 
-        # ✅ Log for dashboard (keep old system)
+        #  Store conversation (NEW)
+        st.session_state.memory.add(user_input, response)
+
+        #  Log for dashboard
         log_analysis(user_input, normalized_risk)
+
+        # -----------------------------
+        # CHAT UI 
+        # -----------------------------
+        st.chat_message("user").write(user_input)
+        st.chat_message("assistant").write(response)
 
         # -----------------------------
         # UI OUTPUT

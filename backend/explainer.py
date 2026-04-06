@@ -31,3 +31,6 @@ Keep it simple and professional.
 
     result = response.json()
     return result.get("response", "No explanation generated")
+
+    
+         
