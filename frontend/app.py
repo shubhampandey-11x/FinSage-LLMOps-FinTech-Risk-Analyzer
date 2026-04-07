@@ -1,7 +1,7 @@
 import sys
 import os
 
-#  Fix import path for main.py
+# Fix import path for main.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import streamlit as st
@@ -9,7 +9,7 @@ import pandas as pd
 import re
 
 from main import run_pipeline   # core pipeline
-from memory import ConversationMemory  # ✅ NEW
+from memory import ConversationMemory  # memory
 
 # -----------------------------
 # Page Config
@@ -22,13 +22,13 @@ st.set_page_config(page_title="FinSage Dashboard", layout="wide")
 os.makedirs("logs", exist_ok=True)
 
 # -----------------------------
-# Initialize Memory (NEW)
+# Initialize Memory
 # -----------------------------
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
 
 # -----------------------------
-# Security Guardrail (UI Level)
+# Security Guardrail
 # -----------------------------
 BLOCKED_WORDS = [
     "hack", "hacking", "exploit", "bypass",
@@ -54,7 +54,7 @@ def normalize_risk_label(risk_text):
         return "🟢 LOW RISK"
 
 # -----------------------------
-# Logging for Dashboard 
+# Logging
 # -----------------------------
 def log_analysis(query, risk):
     import datetime
@@ -65,12 +65,12 @@ def log_analysis(query, risk):
 # UI
 # -----------------------------
 st.title("FinSage AI - Financial Risk Assistant")
-st.caption(" Dashboard updates after each analysis")
+st.caption("Dashboard updates after each analysis")
 
 user_input = st.text_area("Transaction or Query:")
 
 # =============================
-#  UPDATED PIPELINE WITH MEMORY
+# PIPELINE WITH MEMORY
 # =============================
 if st.button("Analyze"):
 
@@ -84,10 +84,9 @@ if st.button("Analyze"):
 
     with st.spinner("Analyzing..."):
 
-        #  Get conversation context
+        # Get memory context
         context = st.session_state.memory.get_context()
 
-        #  Enhanced input with memory
         enhanced_input = f"""
         Previous Context:
         {context}
@@ -96,34 +95,47 @@ if st.button("Analyze"):
         {user_input}
         """
 
-        #  Call pipeline
-        response, risk, explanation = run_pipeline(enhanced_input)
+        # ✅ UPDATED: receive risk_score also
+        response, risk, explanation, risk_score = run_pipeline(enhanced_input)
 
         normalized_risk = normalize_risk_label(risk)
 
-        #  Store conversation (NEW)
+        # Store memory
         st.session_state.memory.add(user_input, response)
 
-        #  Log for dashboard
+        # Log
         log_analysis(user_input, normalized_risk)
 
         # -----------------------------
-        # CHAT UI 
+        # CHAT UI
         # -----------------------------
         st.chat_message("user").write(user_input)
         st.chat_message("assistant").write(response)
 
         # -----------------------------
-        # UI OUTPUT
+        # PREMIUM UI OUTPUT (DAY 16)
         # -----------------------------
         st.success("Analysis Result")
 
-        st.subheader("🔍 Fraud Analysis")
+        st.markdown("## 📊 Financial Risk Report")
 
-        st.write(f"**Risk Level:** {normalized_risk}")
-        st.write(f"**Response:** {response}")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### 🔍 Risk Level")
+            st.write(f"**{normalized_risk}**")
+
+            # ✅ NEW: Risk Score
+            st.markdown("### 📊 Risk Score")
+            st.write(f"**{risk_score} / 100**")
+
+        with col2:
+            st.markdown("### 🤖 AI Response")
+            st.write(response)
 
         # Risk Indicator
+        st.divider()
+
         if "HIGH" in normalized_risk:
             st.error("🔴 HIGH RISK TRANSACTION")
         elif "MEDIUM" in normalized_risk:
@@ -131,12 +143,32 @@ if st.button("Analyze"):
         else:
             st.success("🟢 LOW RISK TRANSACTION")
 
-        # Explainability
-        st.subheader("🔍 Explainability")
-        st.write(explanation)
+        # -----------------------------
+        # EXPLANATION (FIXED)
+        # -----------------------------
+        st.divider()
+
+        st.markdown("## 🧠 AI Explanation")
+
+        if isinstance(explanation, dict):
+            st.markdown(explanation.get("llm_response", ""))
+        else:
+            st.markdown(explanation)
+
+        # -----------------------------
+        # EXPLAINABILITY (KEY FEATURE)
+        # -----------------------------
+        st.divider()
+
+        st.markdown("### 🔍 Why this score?")
+        st.info(
+            "This risk assessment is based on financial indicators such as revenue trends, "
+            "debt levels, expenses, and cash flow. The AI evaluates stability, liquidity, "
+            "and potential risk signals to generate this score."
+        )
 
 # -----------------------------
-# DASHBOARD (UNCHANGED)
+# DASHBOARD
 # -----------------------------
 st.subheader("📊 Fraud Monitoring Dashboard")
 
