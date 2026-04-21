@@ -8,13 +8,25 @@ import streamlit as st
 import pandas as pd
 import re
 
-from main import run_pipeline   # core pipeline
-from memory import ConversationMemory  # memory
+from main import run_pipeline
+from memory import ConversationMemory
+from behavior import analyze_behavior   # ✅ NEW
 
 # -----------------------------
 # Page Config
 # -----------------------------
 st.set_page_config(page_title="FinSage Dashboard", layout="wide")
+
+# -----------------------------
+# UI Styling (NEW)
+# -----------------------------
+st.markdown("""
+<style>
+.stTextArea textarea {
+    font-size: 16px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # -----------------------------
 # Ensure logs folder exists
@@ -26,6 +38,10 @@ os.makedirs("logs", exist_ok=True)
 # -----------------------------
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
+
+# ✅ NEW: Behavioral history
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 # -----------------------------
 # Security Guardrail
@@ -65,12 +81,12 @@ def log_analysis(query, risk):
 # UI
 # -----------------------------
 st.title("FinSage AI - Financial Risk Assistant")
-st.caption("Dashboard updates after each analysis")
+st.caption("AI-powered financial risk intelligence with explainability")
 
 user_input = st.text_area("Transaction or Query:")
 
 # =============================
-# PIPELINE WITH MEMORY
+# PIPELINE WITH MEMORY + BEHAVIOR
 # =============================
 if st.button("Analyze"):
 
@@ -84,7 +100,7 @@ if st.button("Analyze"):
 
     with st.spinner("Analyzing..."):
 
-        # Get memory context
+        # Context memory
         context = st.session_state.memory.get_context()
 
         enhanced_input = f"""
@@ -95,13 +111,19 @@ if st.button("Analyze"):
         {user_input}
         """
 
-        # ✅ UPDATED: receive risk_score also
+        # Run pipeline
         response, risk, explanation, risk_score = run_pipeline(enhanced_input)
 
         normalized_risk = normalize_risk_label(risk)
 
         # Store memory
         st.session_state.memory.add(user_input, response)
+
+        # ✅ Store behavior history
+        st.session_state.history.append({
+            "query": user_input,
+            "risk": normalized_risk
+        })
 
         # Log
         log_analysis(user_input, normalized_risk)
@@ -113,7 +135,7 @@ if st.button("Analyze"):
         st.chat_message("assistant").write(response)
 
         # -----------------------------
-        # PREMIUM UI OUTPUT (DAY 16)
+        # MAIN REPORT
         # -----------------------------
         st.success("Analysis Result")
 
@@ -125,7 +147,6 @@ if st.button("Analyze"):
             st.markdown("### 🔍 Risk Level")
             st.write(f"**{normalized_risk}**")
 
-            # ✅ NEW: Risk Score
             st.markdown("### 📊 Risk Score")
             st.write(f"**{risk_score} / 100**")
 
@@ -144,10 +165,9 @@ if st.button("Analyze"):
             st.success("🟢 LOW RISK TRANSACTION")
 
         # -----------------------------
-        # EXPLANATION (FIXED)
+        # EXPLANATION
         # -----------------------------
         st.divider()
-
         st.markdown("## 🧠 AI Explanation")
 
         if isinstance(explanation, dict):
@@ -156,15 +176,22 @@ if st.button("Analyze"):
             st.markdown(explanation)
 
         # -----------------------------
-        # EXPLAINABILITY (KEY FEATURE)
+        # BEHAVIORAL INTELLIGENCE (🔥 NEW)
         # -----------------------------
         st.divider()
+        st.markdown("## 🧠 Behavioral Insights")
 
+        behavior_insight = analyze_behavior(st.session_state.history)
+        st.info(behavior_insight)
+
+        # -----------------------------
+        # WHY THIS SCORE
+        # -----------------------------
+        st.divider()
         st.markdown("### 🔍 Why this score?")
         st.info(
-            "This risk assessment is based on financial indicators such as revenue trends, "
-            "debt levels, expenses, and cash flow. The AI evaluates stability, liquidity, "
-            "and potential risk signals to generate this score."
+            "This risk score is based on financial indicators such as transaction patterns, "
+            "account trust level, and historical behavior trends."
         )
 
 # -----------------------------
