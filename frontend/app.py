@@ -123,11 +123,11 @@ if st.button("Analyze"):
             )
 
             result = api_response.json()
-
-            response = result.get("response")
-            risk = result.get("risk")
-            explanation = result.get("explanation")
-            risk_score = result.get("risk_score")
+            
+            response = result.get("response") or "Analysis completed"
+            risk = result.get("risk") or result.get("risk_level")
+            explanation = result.get("explanation") or "No explanation available"
+            risk_score = result.get("risk_score") or result.get("score")
 
         except Exception as e:
             st.error(f"Backend connection failed: {e}")
