@@ -1,10 +1,21 @@
+from fastapi import FastAPI
+
+# 🔥 Initialize FastAPI FIRST (must be before any routes)
+app = FastAPI()
+
+
+@app.get("/")
+def home():
+    return {"message": "API Gateway Running"}
+
+
 @app.post("/analyze-risk")
 def analyze_risk(data: dict):
     try:
         # 🔹 Safe query extraction
         query = str(data.get("query", "")).lower().strip()
 
-        # 🔥 RULE-BASED RISK ENGINE (improved)
+        # 🔥 RULE-BASED RISK ENGINE
         risk_score = 20  # base score
 
         if "unknown" in query:
@@ -25,15 +36,13 @@ def analyze_risk(data: dict):
         else:
             risk = "LOW"
 
-        # 🧠 AI EXPLANATION (safe fallback)
-        try:
-            explanation = generate_risk_explanation(data, risk_score)
-            if not explanation:
-                explanation = "Risk determined based on transaction pattern and behavioral signals."
-        except Exception:
-            explanation = "Risk determined based on transaction pattern and behavioral signals."
+        # 🧠 AI EXPLANATION (safe fallback, no dependency issues)
+        explanation = (
+            f"This transaction is classified as {risk} risk based on amount, timing, "
+            f"and account trust indicators."
+        )
 
-        # 🤖 AI RESPONSE (clean + consistent)
+        # 🤖 AI RESPONSE
         if risk == "HIGH":
             response_text = "⚠️ High-risk transaction detected. Immediate verification is strongly recommended."
         elif risk == "MEDIUM":
