@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-# 🔥 Initialize FastAPI FIRST (must be before any routes)
+# 🔥 Initialize FastAPI FIRST
 app = FastAPI()
 
 
@@ -15,17 +15,36 @@ def analyze_risk(data: dict):
         # 🔹 Safe query extraction
         query = str(data.get("query", "")).lower().strip()
 
-        # 🔥 RULE-BASED RISK ENGINE
+        # =========================================================
+        # 🧠 STEP 1: Detect QUESTION vs TRANSACTION
+        # =========================================================
+        question_keywords = ["why", "what", "how", "explain", "define"]
+
+        if any(q in query for q in question_keywords):
+            return {
+                "risk": "N/A",
+                "risk_score": 0,
+                "explanation": "This is a financial concept explanation, not a transaction risk analysis.",
+                "response": (
+                    "A high debt-to-income ratio is risky because it indicates that a large portion "
+                    "of income is already committed to debt repayments. This reduces financial flexibility "
+                    "and increases the likelihood of default during financial stress."
+                )
+            }
+
+        # =========================================================
+        # 🔥 STEP 2: TRANSACTION RISK ENGINE
+        # =========================================================
         risk_score = 20  # base score
 
         if "unknown" in query:
-            risk_score += 30
+            risk_score += 50
         if "late night" in query or "night" in query:
-            risk_score += 20
+            risk_score += 60
         if any(word in query for word in ["50000", "100000", "large", "huge"]):
-            risk_score += 20
+            risk_score += 70
 
-        # 🔹 Cap score between 0–100
+        # 🔹 Cap score
         risk_score = max(0, min(risk_score, 100))
 
         # 🔹 Risk label
@@ -36,13 +55,13 @@ def analyze_risk(data: dict):
         else:
             risk = "LOW"
 
-        # 🧠 AI EXPLANATION (safe fallback, no dependency issues)
+        # 🧠 Explanation
         explanation = (
             f"This transaction is classified as {risk} risk based on amount, timing, "
             f"and account trust indicators."
         )
 
-        # 🤖 AI RESPONSE
+        # 🤖 Response
         if risk == "HIGH":
             response_text = "⚠️ High-risk transaction detected. Immediate verification is strongly recommended."
         elif risk == "MEDIUM":
@@ -50,7 +69,7 @@ def analyze_risk(data: dict):
         else:
             response_text = "✅ Low-risk transaction. No immediate concerns detected."
 
-        # 🔹 FINAL RESPONSE (frontend-safe)
+        # 🔹 Final response
         return {
             "risk": risk,
             "risk_score": risk_score,
