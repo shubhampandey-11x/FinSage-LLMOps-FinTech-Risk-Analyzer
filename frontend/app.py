@@ -7,10 +7,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
 import pandas as pd
 import re
+import requests  # ✅ NEW
 
-from main import run_pipeline
 from memory import ConversationMemory
-from behavior import analyze_behavior   # ✅ NEW
+from behavior import analyze_behavior
+
+# 🔥 Backend URL (Render)
+BACKEND_URL = "https://finsage-llmops-fintech-risk-analyzer.onrender.com"
 
 # -----------------------------
 # Page Config
@@ -18,7 +21,7 @@ from behavior import analyze_behavior   # ✅ NEW
 st.set_page_config(page_title="FinSage Dashboard", layout="wide")
 
 # -----------------------------
-# UI Styling (NEW)
+# UI Styling
 # -----------------------------
 st.markdown("""
 <style>
@@ -39,7 +42,7 @@ os.makedirs("logs", exist_ok=True)
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
 
-# ✅ NEW: Behavioral history
+# Behavioral history
 if "history" not in st.session_state:
     st.session_state.history = []
 
@@ -111,15 +114,31 @@ if st.button("Analyze"):
         {user_input}
         """
 
-        # Run pipeline
-        response, risk, explanation, risk_score = run_pipeline(enhanced_input)
+        # 🔥 CALL BACKEND (REPLACED run_pipeline)
+        try:
+            api_response = requests.post(
+                f"{BACKEND_URL}/analyze-risk",
+                json={"data": {"query": enhanced_input}},
+                timeout=30
+            )
+
+            result = api_response.json()
+
+            response = result.get("response")
+            risk = result.get("risk")
+            explanation = result.get("explanation")
+            risk_score = result.get("risk_score")
+
+        except Exception as e:
+            st.error(f"Backend connection failed: {e}")
+            st.stop()
 
         normalized_risk = normalize_risk_label(risk)
 
         # Store memory
         st.session_state.memory.add(user_input, response)
 
-        # ✅ Store behavior history
+        # Store behavior history
         st.session_state.history.append({
             "query": user_input,
             "risk": normalized_risk
@@ -176,7 +195,7 @@ if st.button("Analyze"):
             st.markdown(explanation)
 
         # -----------------------------
-        # BEHAVIORAL INTELLIGENCE (🔥 NEW)
+        # BEHAVIORAL INTELLIGENCE
         # -----------------------------
         st.divider()
         st.markdown("## 🧠 Behavioral Insights")
