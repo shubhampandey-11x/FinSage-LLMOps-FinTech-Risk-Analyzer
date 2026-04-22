@@ -12,13 +12,21 @@ def home():
 @app.post("/analyze-risk")
 def analyze_risk(data: dict):
     try:
-        # 🔹 Safe query extraction
-        query = str(data.get("query", "")).lower().strip()
+        # =========================================================
+        # 🔹 FIX: Handle BOTH payload formats
+        # frontend may send {"query": "..."} OR {"data": {"query": "..."}}
+        # =========================================================
+        query = (
+            data.get("query")
+            or (data.get("data", {}) or {}).get("query")
+            or ""
+        )
+        query = str(query).lower().strip()
 
         # =========================================================
         # 🧠 STEP 1: Detect QUESTION vs TRANSACTION
         # =========================================================
-        question_keywords = ["why", "what", "how", "explain", "define"]
+        question_keywords = ["why", "what", "how", "explain", "define", "?"]
 
         if any(q in query for q in question_keywords):
             return {
