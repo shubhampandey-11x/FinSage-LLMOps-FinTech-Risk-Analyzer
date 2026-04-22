@@ -1,35 +1,23 @@
-from fastapi import FastAPI
-import requests
-import os
-from backend.explainer import generate_risk_explanation  
-
-app = FastAPI()
-
-# 🔥 Use ENV for service URL (important for deployment)
-RISK_SERVICE_URL = os.getenv("RISK_SERVICE_URL", "http://127.0.0.1:8001/risk-score")
-
-
-@app.get("/")
-def home():
-    return {"message": "API Gateway Running"}
-
-
 @app.post("/analyze-risk")
 def analyze_risk(data: dict):
     try:
-        # 🔹 Call risk service
-        response = requests.post(
-            RISK_SERVICE_URL,
-            json=data,
-            timeout=10
-        )
+        # 🔹 Safe query extraction
+        query = str(data.get("query", "")).lower().strip()
 
-        result = response.json()
+        # 🔥 RULE-BASED RISK ENGINE (improved)
+        risk_score = 20  # base score
 
-        # 🔹 Extract risk score (safe fallback)
-        risk_score = result.get("risk_score", 50)
+        if "unknown" in query:
+            risk_score += 30
+        if "late night" in query or "night" in query:
+            risk_score += 20
+        if any(word in query for word in ["50000", "100000", "large", "huge"]):
+            risk_score += 20
 
-        # 🔹 Derive risk label
+        # 🔹 Cap score between 0–100
+        risk_score = max(0, min(risk_score, 100))
+
+        # 🔹 Risk label
         if risk_score >= 70:
             risk = "HIGH"
         elif risk_score >= 40:
@@ -37,15 +25,28 @@ def analyze_risk(data: dict):
         else:
             risk = "LOW"
 
-        # 🔹 Generate AI explanation
-        explanation = generate_risk_explanation(data, risk_score)
+        # 🧠 AI EXPLANATION (safe fallback)
+        try:
+            explanation = generate_risk_explanation(data, risk_score)
+            if not explanation:
+                explanation = "Risk determined based on transaction pattern and behavioral signals."
+        except Exception:
+            explanation = "Risk determined based on transaction pattern and behavioral signals."
 
-        # 🔹 Final response (FULL payload for frontend)
+        # 🤖 AI RESPONSE (clean + consistent)
+        if risk == "HIGH":
+            response_text = "⚠️ High-risk transaction detected. Immediate verification is strongly recommended."
+        elif risk == "MEDIUM":
+            response_text = "⚠️ Moderate risk detected. Please review this transaction carefully."
+        else:
+            response_text = "✅ Low-risk transaction. No immediate concerns detected."
+
+        # 🔹 FINAL RESPONSE (frontend-safe)
         return {
             "risk": risk,
             "risk_score": risk_score,
             "explanation": explanation,
-            "response": "Risk analysis completed successfully"
+            "response": response_text
         }
 
     except Exception as e:
