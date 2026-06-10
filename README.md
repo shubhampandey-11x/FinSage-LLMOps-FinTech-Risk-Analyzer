@@ -14,7 +14,7 @@ Instead of relying on static ML models, FinSage integrates:
 - Rule-based financial risk engine
 - Behavioral memory tracking
 
-👉 The system not only predicts risk but explains **why the risk exists**
+ The system not only predicts risk but explains **why the risk exists**
 
 ---
 
@@ -103,7 +103,7 @@ Rule-based scoring using:
 - Store in vector database  
 - Retrieve relevant context at runtime  
 
-👉 Improves accuracy and reduces hallucination  
+ Improves accuracy and reduces hallucination  
 
 ---
 
@@ -141,7 +141,7 @@ Rule-based scoring using:
 
 ---
 
-## ⚠️ Limitations
+##  Limitations
 
 - Uses synthetic data (no real financial datasets)  
 - LLM responses may vary slightly  
@@ -150,7 +150,7 @@ Rule-based scoring using:
 
 ---
 
-## 🔮 Future Scope
+##  Future Scope
 
 - Integration with real financial APIs  
 - Fine-tuned financial LLM  
@@ -160,7 +160,7 @@ Rule-based scoring using:
 
 ---
 
-## 🔍 Comparison
+##  Comparison
 
 | Feature | Traditional Systems | FinSage |
 |--------|------------------|--------|
