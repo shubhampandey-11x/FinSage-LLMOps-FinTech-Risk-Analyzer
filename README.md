@@ -32,23 +32,7 @@ Instead of relying on static ML models, FinSage integrates:
 
 ##  Architecture
 
-User Input
-↓
-Data Processing
-↓
-Risk Engine ---------
-↓ |
-RAG Pipeline |
-(Embeddings + DB) |
-↓ |
-Retrieved Context |
-↓ |
-→ LLM (Ollama) ←
-↓
-Memory Layer
-↓
-Output
-
+![FinSage System Architecture](docs/architecture.png)
 
 ---
 
