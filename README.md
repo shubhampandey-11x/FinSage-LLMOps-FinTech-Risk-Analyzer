@@ -1,6 +1,8 @@
 #  FinSage — AI-Powered FinTech Risk Intelligence System
 
 > A production-ready LLMOps system that combines **RAG, local LLMs (Ollama), and behavioral intelligence** to deliver explainable and privacy-preserving financial risk analysis.
+<img width="1536" height="1024" alt="ChatGPT Image Jun 15, 2026 at 01_09_30 PM" src="https://github.com/user-attachments/assets/b361ad98-08da-495a-a0d5-98beed997969" />
+
 
 ---
 
