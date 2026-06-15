@@ -112,6 +112,8 @@ Rule-based scoring using:
 - Frontend → Streamlit Cloud  
 - LLM → Local via Ollama  
 
+Link : https://finsage-risk-analyzer.streamlit.app
+
 ---
 
 ##  CI/CD Pipeline
